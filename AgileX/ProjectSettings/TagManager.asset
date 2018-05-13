@@ -12,8 +12,10 @@ TagManager:
   - Platform
   - CoinBronce
   - CoinPlata
-  - hamburguesa
-  - Fire
+  - Shot_1
+  - Shot_2
+  - Shot_3
+  - Shot
   layers:
   - Default
   - TransparentFX

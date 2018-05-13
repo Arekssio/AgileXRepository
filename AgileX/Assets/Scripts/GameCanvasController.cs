@@ -15,26 +15,22 @@ public class GameCanvasController : MonoBehaviour {
 	public GameObject gameOver;
 	public GameObject levelCompleted;
 	public GameObject enemy;
-	int variable = 0;
-	public Boolean cansado;
 
-	public enum GameState {Idle, Playing, Ended, LevelFinished};
+	public enum GameState {Idle, Playing, Ended, LevelFinished, Shooting};
 	public GameState gameState = GameState.Idle;
-
 
 	public static int currentLevel = 1;
 
 	public GameObject player;
 	public GameObject enemyGenerator;
 	public GameObject spikedBall;
-	public GameObject fireBall;
 	public GameObject coinGenerator;
 	public Text score;
 	public Text timeLeft;
 	public float targetTimer = 60.0f;
-	public float tiempoCansado = 3.0f;
 	public GameObject energyBar;
 	public GameObject energy;
+	public int shotAvailable = 0;
 
 	public enum CharState {Ground, Air};
 	public CharState charState;
@@ -43,23 +39,26 @@ public class GameCanvasController : MonoBehaviour {
 	void Start () {
 		gameOver.SetActive (false);
 		player.SendMessage ("UpdateState", "Player_Idle");
-		energyBar.SendMessage ("TakeEnergy", -0.3);
-		variable = 1;
-		cansado = false;
+		energyBar.SendMessage ("TakeEnergy", -0.9);
 	}
 
 	// Update is called once per frame
 	void Update () {
-		//Debug.Log ("HP: " + energyBar.GetComponent<energyBar>().hp + "   -   ESCALADO: " +
-			//energy.transform.localScale.x + "   -  " );
-		if (variable == 0) energyBar.SendMessage ("TakeEnergy", -0.3);
-		if (cansado == true) manejarEnergia ();
 		updateCharState();
 		if (gameState == GameState.Playing) {
 			DecreaseTime ();
 		}
+		if (Input.GetKeyDown ("[1]")) {
+			player.SendMessage ("ChangeWeapon", 1);
+		}
+			else if (Input.GetKeyDown ("[2]")) {
+			player.SendMessage ("ChangeWeapon", 2);
+		}
+		else if(Input.GetKeyDown ("[3]")) {
+			player.SendMessage ("ChangeWeapon", 3);
+		}
 		//Empieza el juego
-		if (gameState == GameState.Idle && Input.GetKeyDown("up") && cansado == false) {
+		if (gameState == GameState.Idle && Input.GetKeyDown("up")) {
 			gameState = GameState.Playing;
 			startText.SetActive (false);
 			startMenu.SetActive (false);
@@ -67,19 +66,40 @@ public class GameCanvasController : MonoBehaviour {
 			charState = CharState.Ground;
 			enemyGenerator.SendMessage ("StartGenerator");
 			spikedBall.SendMessage ("StartCreating");
-			fireBall.SendMessage ("StartCreating");
 			coinGenerator.SendMessage ("StartGenerator");
 		}
+		if (shotAvailable > 0) {
+			shotAvailable -= 1;
+		}
+
+		if (Input.GetKey("space") && shotAvailable == 0 && gameState != GameState.Ended) {
+			string actualWeapon = GameObject.FindGameObjectWithTag("Player").GetComponent<PlayerController>().actualWeapon;
+			if (actualWeapon == "Pistol") {
+				shotAvailable = 80;
+			} else if (actualWeapon == "Rifle") {
+				shotAvailable = 40;
+			}
+			else if (actualWeapon == "Bazooka") {
+				shotAvailable = 150;
+			}
+			gameState = GameState.Shooting;
+			player.SendMessage ("UpdateState", "Player_Shoots");
+			player.SendMessage ("Shoot");
+
+		}
+		else if (Input.GetKeyUp("space") && gameState != GameState.Ended) {
+			gameState = GameState.Playing;
+			//player.SendMessage ("UpdateState", "Player_Idle");
+		}
 		//Saltar
-		if (gameState == GameState.Playing && Input.GetKey("up") && charState == CharState.Ground && cansado == false) {
+		if (gameState == GameState.Playing && Input.GetKey("up") && charState == CharState.Ground) {
 			charState = CharState.Air;
 			player.SendMessage ("UpdateState", "Player_Jump");
-			variable = 1;
 			player.SendMessage("Jump");
-			energyBar.SendMessage ("TakeEnergy", 0.6);
+			energyBar.SendMessage ("TakeEnergy", 0.9);
 		}
 		//Mover personaje a la izquierda
-		if (gameState == GameState.Playing && Input.GetKey ("left") && cansado == false) {
+		if (gameState == GameState.Playing && Input.GetKey ("left")) {
 			if (player.transform.position.x <= 0f) {
 				//Debug.Log (enemy.GetComponent<EnemyController>().transform.position + "    -    "  + enemy.GetComponent<EnemyController>().velocity);
 				float finalSpeed = parallaxSpeed * Time.deltaTime;
@@ -89,14 +109,13 @@ public class GameCanvasController : MonoBehaviour {
 			}
 			if (charState == CharState.Ground) {
 				player.SendMessage ("UpdateState", "Player_Run");
-				variable = 2;
-				energyBar.SendMessage ("TakeEnergy", 0.60);
+				energyBar.SendMessage ("TakeEnergy", 0.90);
 			}
 			player.SendMessage ("UpdateSpriteFlip", "left");
 			player.transform.position = new Vector3 (Math.Max ((player.transform.position.x - 4f), 0f), player.transform.position.y, 0);
 		}
 		//Mover personaje a la derecha
-		else if (gameState == GameState.Playing && Input.GetKey ("right") && cansado == false) {
+		else if (gameState == GameState.Playing && Input.GetKey ("right")) {
 			if (player.transform.position.x >= 1050f) {
 				float finalSpeed = parallaxSpeed * Time.deltaTime;
 				background.uvRect = new Rect (background.uvRect.x + finalSpeed, 0f, 1f, 1f);
@@ -105,18 +124,16 @@ public class GameCanvasController : MonoBehaviour {
 			}
 			if (charState == CharState.Ground) {
 				player.SendMessage ("UpdateState", "Player_Run");
-				energyBar.SendMessage ("TakeEnergy", 0.6);
-				variable = 2;
+				energyBar.SendMessage ("TakeEnergy", 0.9);
 			}
 			player.SendMessage ("UpdateSpriteFlip", "right");
 			player.transform.position = new Vector3 (Math.Min ((player.transform.position.x + 4f), 1050f), player.transform.position.y, 0);
 		}
 
 		//Pararse
-		else if (gameState == GameState.Playing && (Input.GetKeyUp ("left") || Input.GetKeyUp ("right")) && cansado == false) {
+		else if (gameState == GameState.Playing && (Input.GetKeyUp ("left") || Input.GetKeyUp ("right"))) {
 			player.SendMessage ("UpdateState", "Player_Idle");
-			energyBar.SendMessage ("TakeEnergy", -0.3);
-			variable = 0;
+			energyBar.SendMessage ("TakeEnergy", -0.9);
 
 		//Cuando muere el prota
 		} else if (gameState == GameState.Ended) {
@@ -129,13 +146,11 @@ public class GameCanvasController : MonoBehaviour {
 		//SII completas los puntos requeridos...
 		else if (gameState == GameState.LevelFinished) {
 			player.SendMessage ("UpdateState", "Player_Idle");
-			variable = 0;
-			energyBar.SendMessage ("TakeEnergy", -0.3);
+			energyBar.SendMessage ("TakeEnergy", -0.9);
 			levelCompleted.SetActive (true);
 			startMenu.SetActive (true);
 			enemyGenerator.SendMessage ("CancelGenerator");
 			spikedBall.SendMessage ("CancelCreating");
-			fireBall.SendMessage ("CancelCreating");
 			coinGenerator.SendMessage ("CancelGenerator");
 			foreach(GameObject enmy in GameObject.FindGameObjectsWithTag("Enemy")) {
 				enmy.SendMessage ("ChangeMode");
@@ -158,8 +173,7 @@ public class GameCanvasController : MonoBehaviour {
 	}
 	//Metodo para volver a reiniciar el juego
 	public void RestartGame() {
-		Destroy (GameObject.Find("seleccion"));
-		SceneManager.LoadScene ("seleccionPersonaje");
+		SceneManager.LoadScene ("Principal");
 	}
 	public void LoadNextLevel() {
 		SceneManager.LoadScene ("level" + (currentLevel + 1).ToString());
@@ -173,7 +187,7 @@ public class GameCanvasController : MonoBehaviour {
 	public void IncreaseScoreOro() {
 		int points = int.Parse(score.text) + 15;
 		score.text = points.ToString();
-		if (points >= 30) {
+		if (points >= 150) {
 			gameState = GameState.LevelFinished;
 		}
 
@@ -182,7 +196,7 @@ public class GameCanvasController : MonoBehaviour {
 	public void IncreaseScorePlata() {
 		int points = int.Parse(score.text) + 10;
 		score.text = points.ToString();
-		if (points >= 30) {
+		if (points >= 150) {
 			gameState = GameState.LevelFinished;
 		}
 
@@ -191,7 +205,7 @@ public class GameCanvasController : MonoBehaviour {
 	public void IncreaseScoreBronce() {
 		int points = int.Parse(score.text) + 5;
 		score.text = points.ToString();
-		if (points >= 30) {
+		if (points >= 150) {
 			gameState = GameState.LevelFinished;
 		}
 
@@ -208,18 +222,6 @@ public class GameCanvasController : MonoBehaviour {
 			}
 		} else {
 			timeLeft.text = ((int)targetTimer).ToString ();
-		}
-	}
-
-	//Cambia la animacion al acabarse la energia
-	public void manejarEnergia() {
-		tiempoCansado = (tiempoCansado - Time.fixedDeltaTime);
-		player.SendMessage("UpdateState", "Player_Idle");
-		energyBar.SendMessage ("TakeEnergy", -0.3);
-		cansado = true;
-		if (tiempoCansado <= 0) {
-			cansado = false;
-			tiempoCansado = 3.0f;
 		}
 	}
 
