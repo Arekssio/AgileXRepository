@@ -8,7 +8,7 @@ public class PlayerController : MonoBehaviour {
 
 	private Animator animator;
 	private SpriteRenderer spriteRenderer;
-	public bool facingRight = true;
+	private bool facingRight = true;
 	public GameObject body;
 	private Rigidbody2D rigidBody;
 	private float verticalVelocity;
@@ -16,18 +16,16 @@ public class PlayerController : MonoBehaviour {
 	public GameObject game;
 	public GameObject enemyGenerator;
 	public GameObject spikedBallGenerator;
+	public GameObject fireBallGenerator;
 	public GameObject coinGenerator;
-	public GameObject shotGenerator;
-	public GameObject currentGunSprite;
 
 	GameObject objetoSeleccion;
+	//guardarPersonaje guardarpersonaje;
 	public string personajeSeleccionado;
-	public string actualWeapon;
 
 
 	// Use this for initialization
 	void Start () {
-		actualWeapon = "Pistol";
 		animator = GetComponent<Animator>();
 		spriteRenderer = GetComponent<SpriteRenderer>();
 		rigidBody = GetComponent<Rigidbody2D> ();
@@ -47,50 +45,19 @@ public class PlayerController : MonoBehaviour {
 			rigidBody.velocity = new Vector2 (0f, verticalVelocity);
 		}
 	}
-	public void ChangeWeapon(int weapon) {
-		if (weapon == 1) {
-			
-			actualWeapon = "Pistol";
-			currentGunSprite.GetComponent<Animator> ().Play ("currentGunPistol");
-		} else if (weapon == 2) {
-			actualWeapon = "Rifle";
-		currentGunSprite.GetComponent<Animator> ().Play ("currentGunRifle");
-		} else if (weapon == 3) {
-			actualWeapon = "Bazooka";
-			currentGunSprite.GetComponent<Animator> ().Play ("currentGunBazooka");
-		}
-	}
-
 	public void UpdateState(string state) {
 		if (state != null) {
-			if(state == "Player_Shoots") {
-				print ("HA ENTRADO");
-				switch(actualWeapon) {
-				case "Pistol":
-					state += "_Pistol";
-					break;
-				case "Rifle":
-					state += "_Rifle";
-					break;
-				case "Bazooka":
-					state += "_Bazooka";
-					break;
-				}
-			}
-			print (state);
 			switch (personajeSeleccionado) {
-				case "personaje1":
-					state += "_1";
-					break;
-				case "personaje2":
-					state += "_2";
-					break;
-				case "personaje3":
-					state += "_3";
-					break;
+			case "personaje1": 
+				state += "_1";
+				break;
+			case "personaje2":
+				state += "_2";
+				break;
+			case "personaje3":
+				state += "_3";
+				break;
 			}
-
-			print (state);
 			animator.Play (state);
 		}
 	}
@@ -112,31 +79,25 @@ public class PlayerController : MonoBehaviour {
 		verticalVelocity = 900.0f;
 	}
 
-	public void Shoot() {
-		if (facingRight) {
-			shotGenerator.SendMessage ("CreateShot", 450f);
-		} else {
-			shotGenerator.SendMessage ("CreateShot", -450f);
-
-		}
-	}
-
 	private void OnTriggerEnter2D(Collider2D other)
 	{
-		if (other.gameObject.tag == "Enemy" || other.gameObject.tag == "Spike") {
+		if (other.gameObject.tag == "Enemy" || other.gameObject.tag == "Spike" || other.gameObject.tag == "Fire") {
 			UpdateState ("Player_Die");
+			game.GetComponent<GameCanvasController> ().cansado = false;
 			game.GetComponent<GameCanvasController> ().gameState = GameCanvasController.GameState.Ended;
 			enemyGenerator.SendMessage ("CancelGenerator");
 			spikedBallGenerator.SendMessage ("CancelCreating");
+			fireBallGenerator.SendMessage ("CancelCreating");
 			coinGenerator.SendMessage ("CancelGenerator");
 		} else if (other.gameObject.tag == "Coin") {
 			game.SendMessage ("IncreaseScoreOro");
-		}
-		else if (other.gameObject.tag == "CoinPlata") {
+		} else if (other.gameObject.tag == "CoinPlata") {
 			game.SendMessage ("IncreaseScorePlata");
-		}
-		else if (other.gameObject.tag == "CoinBronce") {
+		} else if (other.gameObject.tag == "CoinBronce") {
 			game.SendMessage ("IncreaseScoreBronce");
+		} else if (other.gameObject.tag == "hamburguesa") {
+			GameObject.Find ("EnergyBar").SendMessage ("TakeEnergy", -50f);
+			Destroy (other.gameObject);
 		}
 	}
 }
