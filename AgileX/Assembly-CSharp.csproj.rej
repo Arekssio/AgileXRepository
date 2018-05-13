@@ -1,0 +1,9 @@
+diff a/AgileX/Assembly-CSharp.csproj b/AgileX/Assembly-CSharp.csproj	(rejected hunks)
+@@ -51,7 +51,6 @@
+     </Reference>
+   </ItemGroup>
+   <ItemGroup>
+-     <Compile Include="Assets\ballScript.cs" />
+      <Compile Include="Assets\Scripts\ballScript.cs" />
+      <Compile Include="Assets\Scripts\EnemyController.cs" />
+      <Compile Include="Assets\Scripts\EnemyGeneratorController.cs" />
